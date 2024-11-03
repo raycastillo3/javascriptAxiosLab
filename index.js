@@ -3,6 +3,7 @@ import { once } from "events";
 import * as Carousel from "./Carousel.js";
 import axios from "axios";
 
+console.log("This is index.js");
 // The breed selection input element.
 const breedSelect = document.getElementById("breedSelect");
 // The information section div element.
@@ -64,7 +65,7 @@ breedSelect.addEventListener("change", ()=>{
     try {
         Carousel.clear();
         const catId = breedSelect.value; 
-        const response = axios.get(`https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=${catId}&api_key=${process.env.API_KEY}`)
+        const response = axios.get(`https://api.thecatapi.com/v1/images/search?limit=5&breed_ids=${catId}&api_key=${process.env.API_KEY}`)
         .then((jsonData) => {
             jsonData.data.forEach((catObj) =>{
                 const imgUrl = catObj.url;
@@ -75,9 +76,19 @@ breedSelect.addEventListener("change", ()=>{
                 Carousel.start();
             });
         });
+        const responseDescription = axios.get("https://api.thecatapi.com/v1/breeds")
+        .then(jsonData => {
+            const catDescription = jsonData.data.find((catObj) => catObj.id === breedSelect.value);
+            infoDump.innerHTML = catDescription.description;
+            console.log(jsonData.data);
+            const infoDumpTitle = document.createElement("h3");
+            infoDumpTitle.textContent = "Description: ";
+            infoDump.prepend(infoDumpTitle);
+        });
     } catch (err) {
         console.log(err)
     }
+
 })
 /**
  * 3. Fork your own sandbox, creating a new one named "JavaScript Axios Lab."
@@ -97,7 +108,20 @@ breedSelect.addEventListener("change", ()=>{
  * - Add a console.log statement to indicate when requests begin.
  * - As an added challenge, try to do this on your own without referencing the lesson material.
  */
+const time = new Date();
+axios.interceptors.request.use(request => {
+    console.log("request time begin: ", time.toLocaleTimeString());
+    return request;
+}, (err) =>{
+    return Promise.reject(err)
+});
 
+axios.interceptors.response.use(response => {
+      console.log("response time begin: ", time.toLocaleTimeString());
+      return response;
+}, (err) =>{
+    return Promise.reject(err)
+});
 /**
  * 6. Next, we'll create a progress bar to indicate the request is in progress.
  * - The progressBar element has already been created for you.
