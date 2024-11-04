@@ -3,7 +3,6 @@ import { once } from "events";
 import * as Carousel from "./Carousel.js";
 import axios from "axios";
 
-console.log("This is index.js");
 // The breed selection input element.
 const breedSelect = document.getElementById("breedSelect");
 // The information section div element.
@@ -32,19 +31,16 @@ placeholder.selected = true;
 breedSelect.add(placeholder, 0); 
 
 function initialLoad () {
-    try {
-        const response = axios.get("https://api.thecatapi.com/v1/breeds")
-        .then((jsonData) => {
-            jsonData.data.forEach((catObj) => {
-            const option = document.createElement("option"); 
-            option.value = catObj.id; 
-            option.innerHTML = catObj.name;
-            breedSelect.append(option);
-            });
+    const response = axios.get("https://api.thecatapi.com/v1/breeds")
+    .then((jsonData) => {
+        jsonData.data.forEach((catObj) => {
+        const option = document.createElement("option"); 
+        option.value = catObj.id; 
+        option.innerHTML = catObj.name;
+        breedSelect.append(option);
         })
-    } catch (err) {
-        console.info(err);
-    }
+    }).catch(err => console.log(err));
+   
 }
 initialLoad();
 /**
@@ -62,33 +58,37 @@ initialLoad();
  * - Add a call to this function to the end of your initialLoad function above to create the initial carousel.
  */
 breedSelect.addEventListener("change", ()=>{
-    try {
-        Carousel.clear();
-        const catId = breedSelect.value; 
-        const response = axios.get(`https://api.thecatapi.com/v1/images/search?limit=5&breed_ids=${catId}&api_key=${process.env.API_KEY}`)
-        .then((jsonData) => {
-            jsonData.data.forEach((catObj) =>{
-                const imgUrl = catObj.url;
-                const imgId = catObj.id; 
-                const imgAlt = `cat image ${imgId}`
-                const carouselElement = Carousel.createCarouselItem(imgUrl, imgAlt, imgId); 
-                Carousel.appendCarousel(carouselElement); 
-                Carousel.start();
-            });
-        });
-        const responseDescription = axios.get("https://api.thecatapi.com/v1/breeds")
-        .then(jsonData => {
-            const catDescription = jsonData.data.find((catObj) => catObj.id === breedSelect.value);
-            infoDump.innerHTML = catDescription.description;
-            console.log(jsonData.data);
-            const infoDumpTitle = document.createElement("h3");
-            infoDumpTitle.textContent = "Description: ";
-            infoDump.prepend(infoDumpTitle);
-        });
-    } catch (err) {
-        console.log(err)
+    Carousel.clear();
+    const catId = breedSelect.value; 
+    const progressEventObj = {
+        onDownloadProgress: function updateProgress (progressEvent){
+            const percentCompleted = Math.floor((progressEvent.loaded / progressEvent.total)*100);
+            progressBar.style.width = percentCompleted+"%";
+            // progressBar.style.width = progressEvent.progress+'%'
+            // console.log(percentCompleted);
+            console.log(progressEvent);
+        }
     }
-
+    const response = axios.get(`https://api.thecatapi.com/v1/images/search?limit=5&breed_ids=${catId}&api_key=${process.env.API_KEY}`, progressEventObj)
+    .then((jsonData) => {
+        jsonData.data.forEach((catObj) =>{
+            const imgUrl = catObj.url;
+            const imgId = catObj.id; 
+            const imgAlt = `cat image ${imgId}`
+            const carouselElement = Carousel.createCarouselItem(imgUrl, imgAlt, imgId); 
+            Carousel.appendCarousel(carouselElement); 
+            Carousel.start();
+        });
+    }).catch(err => console.log(err));
+    const responseDescription = axios.get("https://api.thecatapi.com/v1/breeds")
+    .then(jsonData => {
+        const catDescription = jsonData.data.find((catObj) => catObj.id === breedSelect.value);
+        infoDump.innerHTML = catDescription.description;
+        const infoDumpTitle = document.createElement("h3");
+        infoDumpTitle.textContent = "Description: ";
+        infoDump.prepend(infoDumpTitle);
+    }).catch(err => console.log(err))
+    
 })
 /**
  * 3. Fork your own sandbox, creating a new one named "JavaScript Axios Lab."
@@ -109,7 +109,10 @@ breedSelect.addEventListener("change", ()=>{
  * - As an added challenge, try to do this on your own without referencing the lesson material.
  */
 const time = new Date();
+
 axios.interceptors.request.use(request => {
+    progressBar.style.width = "0%";
+    document.body.style.cursor = "progress";
     console.log("request time begin: ", time.toLocaleTimeString());
     return request;
 }, (err) =>{
@@ -117,6 +120,7 @@ axios.interceptors.request.use(request => {
 });
 
 axios.interceptors.response.use(response => {
+      document.body.style.cursor = "default";
       console.log("response time begin: ", time.toLocaleTimeString());
       return response;
 }, (err) =>{
@@ -129,6 +133,7 @@ axios.interceptors.response.use(response => {
  * - In your request interceptor, set the width of the progressBar element to 0%.
  *  - This is to reset the progress with each request.
  * - Research the axios onDownloadProgress config option.
+ * 
  * - Create a function "updateProgress" that receives a ProgressEvent object.
  *  - Pass this function to the axios onDownloadProgress config option in your event handler.
  * - console.log your ProgressEvent object within updateProgess, and familiarize yourself with its structure.
@@ -138,11 +143,14 @@ axios.interceptors.response.use(response => {
  *   with for future projects.
  */
 
+//Completed - notice the progress bar
+
 /**
  * 7. As a final element of progress indication, add the following to your axios interceptors:
  * - In your request interceptor, set the body element's cursor style to "progress."
  * - In your response interceptor, remove the progress cursor style from the body element.
  */
+//Completed - notice the cursor
 /**
  * 8. To practice posting data, we'll create a system to "favourite" certain images.
  * - The skeleton of this function has already been created for you.
